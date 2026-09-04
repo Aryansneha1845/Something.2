@@ -3,7 +3,7 @@
     {
       "id": "CAM-01",
       "name": "Camera #1 — Main Entrance & Gate",
-      "source": "cam1_entrance.mp4",
+      "source": "real_cctv_cam1.mp4",
       "sector": "SECTOR-NORTH",
       "enabled": true,
       "loop": true,
@@ -32,7 +32,7 @@
     {
       "id": "CAM-02",
       "name": "Camera #2 — Inner Construction Yard",
-      "source": "cam2_yard.mp4",
+      "source": "real_cctv_cam2.mp4",
       "sector": "SECTOR-CENTRAL",
       "enabled": true,
       "loop": true,
@@ -61,7 +61,7 @@
     {
       "id": "CAM-03",
       "name": "Camera #M — Secure Access Corridor",
-      "source": "cam3_corridor.mp4",
+      "source": "real_cctv_cam3.mp4",
       "sector": "SECTOR-EAST",
       "enabled": true,
       "loop": true,
