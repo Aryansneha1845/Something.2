@@ -1,0 +1,13 @@
+# IBVAP backend — pinned to versions verified working on Python 3.13 / CPU-only
+fastapi==0.136.3
+uvicorn[standard]==0.48.0
+opencv-python==5.0.0.93
+numpy==2.5.2
+torch==2.13.0
+torchvision==0.28.0
+ultralytics==8.4.126
+shapely==2.1.2
+easyocr==1.7.2
+pillow==12.3.0
+pydantic==2.12.5
+python-multipart==0.0.20

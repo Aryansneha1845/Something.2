@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0d12">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            cyber: {
+              cyan: '#00f0ff',
+              emerald: '#10b981',
+              amber: '#f59e0b',
+              red: '#ef4444',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="theme-tactical font-sans antialiased text-slate-100 bg-[#06080d]">
+  <!-- Top Navigation Bar -->
+  <header class="topbar">
+    <button class="nav-toggle" id="btn-nav-toggle" aria-label="Toggle navigation menu" aria-expanded="false">
+      <span class="nav-toggle-bar"></span>
+      <span class="nav-toggle-bar"></span>
+      <span class="nav-toggle-bar"></span>
+    </button>
+    <div class="brand">
+      <div class="brand-radar">
+        <span class="radar-sweep"></span>
+      </div>
+      <div class="brand-info">
+        <span class="brand-title">IBVAP <span class="badge-tag">C2 COMMAND</span></span>
+        <span class="brand-sub">Sashastra Seema Bal — Perimeter Surveillance Grid</span>
+      </div>
+    </div>
+
+    <!-- Status Indicators & Telemetry -->
+    <div class="telemetry-bar">
+      <div class="telemetry-item" id="system-threat-indicator">
+        <span class="telemetry-label">THREAT LEVEL</span>
+        <span class="telemetry-val threat-badge threat-normal" id="global-threat">NORMAL</span>
+      </div>
+      <div class="telemetry-item">
+        <span class="telemetry-label">CAMERAS</span>
+        <span class="telemetry-val" id="cam-count">0 / 0</span>
+      </div>
+      <div class="telemetry-item hide-sm">
+        <span class="telemetry-label">INFERENCE FPS</span>
+        <span class="telemetry-val" id="fps-counter">0.0</span>
+      </div>
+      <div class="telemetry-item hide-sm">
+        <span class="telemetry-label">ACTIVE TRACKS</span>
+        <span class="telemetry-val" id="tracks-counter">0</span>
+      </div>
+      <div class="telemetry-item">
+        <span class="telemetry-label">BACKEND</span>
+        <span class="telemetry-val ws-pill ws-offline" id="ws-status" title="Click to configure backend address">CONNECTING</span>
+      </div>
+      <div class="telemetry-item hide-xs">
+        <span class="telemetry-label">LOCAL CLOCK</span>
+        <span class="telemetry-val mono" id="clock">00:00:00</span>
+      </div>
+    </div>
+
+    <!-- Actions & Server Config -->
+    <div class="header-actions">
+      <button class="btn btn-sm hide-xs" id="btn-server-config" title="Configure Backend Host / IP">⚙️ <span id="server-host-label">Server</span></button>
+      <button class="btn btn-icon" id="audio-toggle" title="Toggle Alert Sound" aria-label="Toggle Alert Audio">
+        <span id="audio-icon">🔔</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Viewport Layout -->
+  <div class="app-layout">
+    <!-- Sidebar Navigation / Quick Tabs -->
+    <aside class="nav-sidebar" id="nav-sidebar">
+      <nav class="nav-tabs">
+        <button class="nav-tab active" data-tab="reid-tracking">
+          <span class="tab-icon">🎯</span>
+          <span class="tab-label">Multi-Cam ReID & Tracks</span>
+        </button>
+        <button class="nav-tab" data-tab="live-mosaic">
+          <span class="tab-icon">📹</span>
+          <span class="tab-label">Live Feeds</span>
+        </button>
+        <button class="nav-tab" data-tab="sector-map">
+          <span class="tab-icon">🗺️</span>
+          <span class="tab-label">Sector Map</span>
+        </button>
+        <button class="nav-tab" data-tab="events-log">
+          <span class="tab-icon">⚡</span>
+          <span class="tab-label">Incidents (<span id="unread-count">0</span>)</span>
+        </button>
+        <button class="nav-tab" data-tab="anpr-log">
+          <span class="tab-icon">🚗</span>
+          <span class="tab-label">ANPR Reads</span>
+        </button>
+        <button class="nav-tab" data-tab="watchlist-tab">
+          <span class="tab-icon">🛡️</span>
+          <span class="tab-label">Watchlist</span>
+        </button>
+        <button class="nav-tab" data-tab="ptz-console">
+          <span class="tab-icon">🕹️</span>
+          <span class="tab-label">PTZ Controls</span>
+        </button>
+        <button class="nav-tab" data-tab="audit-tab">
+          <span class="tab-icon">📊</span>
+          <span class="tab-label">Threat & Audit</span>
+        </button>
+      </nav>
+
+      <!-- System Quick Controls -->
+      <div class="sidebar-footer">
+        <div class="stream-quality-toggle">
+          <label class="switch-label">Stream Overlay</label>
+          <div class="pill-toggle">
+            <button class="pill-btn active" id="btn-stream-annotated">AI HUD</button>
+            <button class="pill-btn" id="btn-stream-raw">Raw</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Drawer backdrop (mobile) -->
+    <div class="nav-backdrop" id="nav-backdrop"></div>
+
+    <!-- Center Workspace -->
+    <main class="main-content" id="main-content">
+
+      <!-- Primary Tab: Multi-Camera Tracking & Body-Part ReID (Matching Diagram) -->
+      <section class="tab-pane active" id="pane-reid-tracking">
+        <div class="section-toolbar">
+          <div class="toolbar-left">
+            <h2 class="section-title">Multi-Camera Tracking & Body-Part ReID Architecture</h2>
+            <span class="live-pulse-badge">BPB-ReID ACTIVE</span>
+          </div>
+          <div class="toolbar-right" style="display:flex; gap:8px;">
+            <button class="btn btn-sm btn-simulate" id="btn-reid-step">⚡ Re-Associate Exemplars</button>
+            <button class="btn btn-sm" id="btn-refresh-reid">⟳ Sync FOVs</button>
+          </div>
+        </div>
+
+        <!-- Part (a) & (b): Multi Cameras + Body-Part ReID Feature Extraction -->
+        <div class="reid-layout-top">
+          <!-- (a) Multi Cameras -->
+          <div class="reid-card reid-cams-card">
+            <div class="card-header-compact">
+              <span class="diagram-tag">(a) Multi Cameras</span>
+              <span class="meta-mini">Camera #1, Camera #2, Camera #M</span>
+            </div>
+            <div class="multicam-strip" id="multicam-strip">
+              <!-- Dynamically populated 3 video camera feeds with worker bboxes -->
+            </div>
+          </div>
+
+          <!-- (b) Worker Detection & Body-Part ReID Feature Extraction -->
+          <div class="reid-card reid-bpb-card">
+            <div class="card-header-compact">
+              <span class="diagram-tag">(b) Worker Detection and ReID Feature Extraction</span>
+              <span class="meta-mini">BPBReID Anatomical Part Features</span>
+            </div>
+            <div class="bpb-feature-container">
+              <div class="bpb-flow-label">
+                <span>Frames ➔ YOLO ➔ BBoxes</span>
+                <span>Crops ➔ BPBReID ➔ Body Part Features</span>
+              </div>
+              <div class="bpb-crops-grid" id="bpb-crops-grid">
+                <!-- Dynamically populated crops with Head, Torso, Legs color bands and ReID vectors -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Part (c): Message-Passing Approach & Track Generation -->
+        <div class="reid-layout-bottom">
+          <!-- Message-Passing Approach -->
+          <div class="reid-card reid-message-card">
+            <div class="card-header-compact">
+              <span class="diagram-tag">(c) Message-Passing Approach</span>
+              <span class="meta-mini">Sending Responsibilities r(i,k) & Availabilities a(i,k)</span>
+            </div>
+            <div class="message-passing-inner">
+              <div class="exemplar-gradient-bar">
+                <span class="ex-label">Exemplar</span>
+                <div class="ex-bar"></div>
+                <span class="ex-label">Non-Exemplar</span>
+              </div>
+              <div class="message-passing-diagram-wrapper">
+                <canvas id="message-passing-canvas" width="380" height="260"></canvas>
+              </div>
+              <div class="affinity-status-box" id="affinity-status-box">
+                <!-- Real-time responsibility & availability message readout -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Cameras' Field of Views and Workers' Tracks -->
+          <div class="reid-card reid-tracks-card">
+            <div class="card-header-compact">
+              <span class="diagram-tag">Cameras' Field of Views and Workers' Tracks</span>
+              <span class="meta-mini">Cross-Camera Multi-Target Continuous Trajectories</span>
+            </div>
+            <div class="fov-canvas-wrapper">
+              <canvas id="fov-trajectories-canvas" width="680" height="380"></canvas>
+              <div class="worker-avatar-overlay" id="worker-avatar-overlay">
+                <!-- Worker A, Worker B, Worker C pinned badges -->
+              </div>
+            </div>
+            <div class="fov-legend-bar">
+              <div class="legend-chip"><span class="legend-pill" style="background:#ff6d00;"></span> Worker A (Orange Vest) Trajectory</div>
+              <div class="legend-chip"><span class="legend-pill" style="background:#00e676;"></span> Worker B (Lime Vest) Trajectory</div>
+              <div class="legend-chip"><span class="legend-pill" style="background:#e040fb;"></span> Worker C (Navy Tactical) Trajectory</div>
+              <div class="legend-chip"><span class="legend-dash"></span> Camera Handover Boundary</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab 2: Live Feeds Mosaic & Focused Inspection -->
+      <section class="tab-pane" id="pane-live-mosaic">
+        <div class="section-toolbar">
+          <div class="toolbar-left">
+            <h2 class="section-title">Perimeter Video Surveillance Grid</h2>
+            <span class="live-pulse-badge">REAL-TIME 8 FPS</span>
+          </div>
+          <div class="toolbar-right" style="display:flex; gap:8px;">
+            <button class="btn btn-sm btn-simulate" id="btn-sim-breach" title="Simulate a perimeter fence breach for testing">🚨 Test Breach</button>
+            <button class="btn btn-sm" id="btn-reset-focus" style="display:none;">⤢ Multi-Grid</button>
+            <button class="btn btn-sm" id="btn-refresh-cams">⟳ Refresh</button>
+          </div>
+        </div>
+
+        <!-- Camera Streams Container -->
+        <div class="camera-grid" id="camera-grid">
+          <!-- Populated dynamically -->
+        </div>
+
+        <!-- Focused Camera Inspector -->
+        <div class="camera-inspector" id="camera-inspector" style="display: none;">
+          <div class="inspector-header">
+            <div>
+              <h3 id="inspector-cam-name">Camera Focus View</h3>
+              <span class="meta-sub" id="inspector-cam-meta">Sector North — Tripwire & Intrusion AI Active</span>
+            </div>
+            <div class="inspector-actions">
+              <button class="btn btn-sm" id="btn-snapshot-now">📸 Snapshot</button>
+              <button class="btn btn-sm btn-primary" id="btn-close-inspector">✕ Close Focus</button>
+            </div>
+          </div>
+          <div class="inspector-viewport">
+            <img id="inspector-stream" alt="Live Camera Feed" src="" />
+            <div class="inspector-hud" id="inspector-hud">
+              <span class="hud-pill" id="hud-fps">FPS: --</span>
+              <span class="hud-pill" id="hud-night">MODE: DAY</span>
+              <span class="hud-pill" id="hud-tracks">TRACKS: 0</span>
+              <span class="hud-pill threat-badge" id="hud-threat">THREAT: 0</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab 2: Tactical Sector Map -->
+      <section class="tab-pane" id="pane-sector-map">
+        <div class="section-toolbar">
+          <div>
+            <h2 class="section-title">Sector Tactical Schematic</h2>
+            <span class="meta-sub">Perimeter boundary, tripwires, restricted zones & live camera coverage</span>
+          </div>
+        </div>
+        <div class="sector-map-container">
+          <div class="map-canvas-wrapper">
+            <canvas id="sector-map-canvas" width="1000" height="600"></canvas>
+            <div id="map-markers-layer"></div>
+          </div>
+          <div class="map-legend">
+            <div class="legend-item"><span class="legend-dot dot-normal"></span> Operational Camera</div>
+            <div class="legend-item"><span class="legend-dot dot-alert"></span> Active Intrusion Alert</div>
+            <div class="legend-item"><span class="legend-line line-tripwire"></span> Virtual Tripwire</div>
+            <div class="legend-item"><span class="legend-area area-restricted"></span> Restricted Buffer</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab 3: Incidents & Natural Language Search -->
+      <section class="tab-pane" id="pane-events-log">
+        <div class="section-toolbar search-toolbar">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="nl-search-input" placeholder="Natural Language Search: e.g. 'crawling near fence', 'night vehicles', 'threat over 60'..." />
+            <button class="btn btn-primary btn-sm" id="btn-run-search">Search</button>
+          </div>
+        </div>
+
+        <!-- Filter Chips -->
+        <div class="filter-chips">
+          <button class="chip active" data-filter="all">All Incidents</button>
+          <button class="chip" data-filter="high-threat">Critical Threat (&ge;70)</button>
+          <button class="chip" data-filter="crawl">Crawling / Crouching</button>
+          <button class="chip" data-filter="night">Night Mode Breaches</button>
+          <button class="chip" data-filter="vehicle">Vehicles / Checkpoint</button>
+          <button class="chip" data-filter="unack">Unacknowledged</button>
+        </div>
+
+        <!-- Incidents Table / Cards -->
+        <div class="incidents-container" id="incidents-container">
+          <div class="loading-state">Loading surveillance events...</div>
+        </div>
+      </section>
+
+      <!-- Tab 4: ANPR Reads -->
+      <section class="tab-pane" id="pane-anpr-log">
+        <div class="section-toolbar">
+          <div>
+            <h2 class="section-title">Automatic Number Plate Recognition (ANPR)</h2>
+            <span class="meta-sub">Real-time EasyOCR plate extractions and watchlist correlation</span>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-sm btn-simulate" id="btn-sim-plate">🚗 Test Plate Scan</button>
+            <button class="btn btn-sm" id="btn-refresh-plates">⟳ Refresh Reads</button>
+          </div>
+        </div>
+        <div class="table-card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Camera</th>
+                <th>License Plate</th>
+                <th>Vehicle Class</th>
+                <th>Confidence</th>
+                <th>Watchlist Match</th>
+                <th>Snapshot</th>
+              </tr>
+            </thead>
+            <tbody id="plates-table-body">
+              <tr><td colspan="7" class="text-center">No license plates captured yet</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Tab 5: Watchlist Management -->
+      <section class="tab-pane" id="pane-watchlist-tab">
+        <div class="section-toolbar">
+          <div>
+            <h2 class="section-title">Target Watchlist Management</h2>
+            <span class="meta-sub">Explicit gallery of flagged vehicle license plates & suspect identities</span>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btn-open-enroll">➕ Enrol Target</button>
+        </div>
+
+        <div class="watchlist-grid" id="watchlist-grid">
+          <!-- Populated dynamically -->
+        </div>
+      </section>
+
+      <!-- Tab 6: PTZ Controls -->
+      <section class="tab-pane" id="pane-ptz-console">
+        <div class="section-toolbar">
+          <div>
+            <h2 class="section-title">Simulated ONVIF PTZ Lock-On Console</h2>
+            <span class="meta-sub">Target tracking kinematics & real-time SOAP payload inspection</span>
+          </div>
+        </div>
+
+        <div class="ptz-layout">
+          <!-- Interactive Joystick & Controls -->
+          <div class="ptz-card">
+            <h3>Manual Slew Control</h3>
+            <div class="cam-select-row">
+              <label>Target Camera:</label>
+              <select id="ptz-cam-select" class="form-select"></select>
+            </div>
+            <div class="dpad-container">
+              <button class="dpad-btn dpad-up" data-dir="up">▲<br><small>TILT UP</small></button>
+              <div class="dpad-mid">
+                <button class="dpad-btn dpad-left" data-dir="left">◀ <small>PAN L</small></button>
+                <button class="dpad-btn dpad-center" data-dir="center">⊙ <small>RESET</small></button>
+                <button class="dpad-btn dpad-right" data-dir="right"><small>PAN R</small> ▶</button>
+              </div>
+              <button class="dpad-btn dpad-down" data-dir="down">▼<br><small>TILT DOWN</small></button>
+            </div>
+
+            <div class="zoom-controls">
+              <label>Optics Zoom:</label>
+              <div class="btn-group">
+                <button class="btn btn-sm" id="ptz-zoom-out">🔍- Zoom Out</button>
+                <button class="btn btn-sm" id="ptz-zoom-in">🔍+ Zoom In</button>
+              </div>
+            </div>
+
+            <div class="presets-row" style="margin-top:10px;">
+              <label style="font-size:11px; color:#8899aa; display:block; margin-bottom:4px;">Quick Presets:</label>
+              <div style="display:flex; gap:6px;">
+                <button class="btn btn-sm" onclick="window.ibvapPtzPreset('fence-gate')">Preset: Fence</button>
+                <button class="btn btn-sm" onclick="window.ibvapPtzPreset('road-lane')">Preset: Gate</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live ONVIF XML Terminal -->
+          <div class="ptz-terminal-card">
+            <h3>Simulated ONVIF SOAP Protocol Log</h3>
+            <pre class="ptz-log-console" id="ptz-log-terminal">Waiting for target tracking dispatch...</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab 7: Threat Intelligence & Audit Trail -->
+      <section class="tab-pane" id="pane-audit-tab">
+        <div class="section-toolbar">
+          <div>
+            <h2 class="section-title">Threat Intelligence & System Audit Trail</h2>
+            <span class="meta-sub">24-hour security assessment and tamper-evident event log</span>
+          </div>
+          <button class="btn btn-sm" id="btn-refresh-audit">⟳ Refresh Log</button>
+        </div>
+
+        <!-- Metrics KPI Cards -->
+        <div class="metrics-grid" id="metrics-grid">
+          <div class="metric-card">
+            <span class="metric-label">24H INCIDENTS</span>
+            <span class="metric-val" id="metric-total-events">0</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">OPEN HIGH THREAT</span>
+            <span class="metric-val threat-alert" id="metric-high-threat">0</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">ANPR PLATE READS</span>
+            <span class="metric-val" id="metric-total-plates">0</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">PEAK THREAT SCORE</span>
+            <span class="metric-val" id="metric-peak-threat">0</span>
+          </div>
+        </div>
+
+        <!-- Audit Trail Table -->
+        <div class="table-card" style="margin-top:16px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Actor</th>
+                <th>Action</th>
+                <th>Audit Detail</th>
+              </tr>
+            </thead>
+            <tbody id="audit-table-body">
+              <tr><td colspan="4" class="text-center">Loading audit log...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <!-- Right Live Alert Stream (Desktop & Tablet Dock) -->
+    <aside class="alerts-dock" id="alerts-dock">
+      <div class="dock-header">
+        <h3>Live Alert Stream</h3>
+        <span class="badge-count" id="active-alert-count">0</span>
+      </div>
+      <div class="dock-list" id="dock-alerts-list">
+        <div class="dock-empty">Perimeter secure. Monitoring real-time video feeds...</div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Mobile Bottom Tab Bar -->
+  <nav class="bottom-bar" id="bottom-bar" aria-label="Primary">
+    <button class="bottom-tab active" data-tab-target="reid-tracking">
+      <span class="bottom-icon">🎯</span>
+      <span class="bottom-label">ReID</span>
+    </button>
+    <button class="bottom-tab" data-tab-target="live-mosaic">
+      <span class="bottom-icon">📹</span>
+      <span class="bottom-label">Feeds</span>
+    </button>
+    <button class="bottom-tab" data-tab-target="events-log">
+      <span class="bottom-icon">⚡</span>
+      <span class="bottom-label">Incidents</span>
+    </button>
+    <button class="bottom-tab" data-tab-target="sector-map">
+      <span class="bottom-icon">🗺️</span>
+      <span class="bottom-label">Map</span>
+    </button>
+    <button class="bottom-tab" data-tab-more id="btn-bottom-more">
+      <span class="bottom-icon">☰</span>
+      <span class="bottom-label">More</span>
+    </button>
+  </nav>
+
+  <!-- Snapshot Zoom / Evidence Modal -->
+  <div class="modal" id="evidence-modal" style="display: none;">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-title">Incident Evidence Snapshot</h3>
+        <button class="btn-close" id="btn-close-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <img id="modal-image" src="" alt="Evidence Snapshot" />
+        <div class="modal-details" id="modal-details"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Watchlist Enrol Modal -->
+  <div class="modal" id="enroll-modal" style="display: none;">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content modal-sm">
+      <div class="modal-header">
+        <h3>Enrol Watchlist Target</h3>
+        <button class="btn-close" id="btn-close-enroll">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="enroll-form">
+          <div class="form-group">
+            <label>Target Type</label>
+            <select id="enroll-kind" class="form-select">
+              <option value="plate">Vehicle License Plate (ANPR)</option>
+              <option value="face">Face Identity (YuNet + SFace)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label id="enroll-val-label">License Plate Number</label>
+            <input type="text" id="enroll-val" class="form-input" placeholder="e.g. DL01AB1234" required />
+          </div>
+          <div class="form-group">
+            <label>Label / Name</label>
+            <input type="text" id="enroll-label" class="form-input" placeholder="e.g. Suspect Vehicle / Infiltrator" />
+          </div>
+          <div class="form-group">
+            <label>Intelligence Notes</label>
+            <textarea id="enroll-note" class="form-textarea" placeholder="SSB Intel report ref / flagged checkpoint"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">Enrol into Surveillance Gallery</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Server Address Modal -->
+  <div class="modal" id="server-modal" style="display: none;">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content modal-sm">
+      <div class="modal-header">
+        <h3>Backend Server Settings</h3>
+        <button class="btn-close" id="btn-close-server">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>IBVAP Server Address / Port</label>
+          <input type="text" id="input-server-url" class="form-input" placeholder="http://127.0.0.1:8000" />
+          <small style="color:#8899aa; font-size:11px; margin-top:4px;">For phone/tablet on Wi-Fi: use your PC's IP, e.g. <code>http://192.168.1.50:8000</code></small>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:12px;">
+          <button class="btn btn-primary btn-block" id="btn-save-server">Save & Reconnect</button>
+          <button class="btn btn-block" id="btn-reset-server">Reset Default</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Alert Beep -->
+  <audio id="alert-sound" preload="auto">
+    <source src="data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU..." type="audio/wav">
+  </audio>
+
+  <script src="app.js"></script>
+  <script>
+    if (!window.ibvapFocusCamera) {
+      document.write('<script src="/static/app.js"><\/script>');
+    }
+  </script>
+</body>
+</html>

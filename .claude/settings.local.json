@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(py --version)",
+      "Bash(python -m pip --version)",
+      "Bash(npm --version)",
+      "Bash(nvidia-smi --query-gpu=name,memory.total --format=csv)",
+      "Bash(git --version)",
+      "Bash(python -m pip list)",
+      "Bash(python -c \"import urllib.request,json;print\\(urllib.request.urlopen\\('https://pypi.org/pypi/ultralytics/json',timeout=15\\).status\\)\")",
+      "Bash(python -c \"import os;print\\(os.cpu_count\\(\\)\\)\")",
+      "Bash(python -c ' *)",
+      "Bash(curl -sL -o face_detection_yunet.onnx \"https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx\")",
+      "Bash(awk '{print $5, $9}')",
+      "Bash(curl -sL -o face_recognition_sface.onnx \"https://github.com/opencv/opencv_zoo/raw/main/models/face_recognition_sface/face_recognition_sface_2021dec.onnx\")",
+      "Bash(python build_standalone.py)",
+      "Bash(cd \"C:\\\\Users\\\\santosh\\\\Downloads\\\\test\\\\ibvap\" && ls -la --time-style=+\"%Y-%m-%d %H:%M:%S\" frontend/index.html frontend/style.css frontend/app.js ../ibvap/standalone_dashboard.html 2>/dev/null; echo \"---\"; ls -la --time-style=+\"%Y-%m-%d %H:%M:%S\" standalone_dashboard.html)",
+      "Bash(python -c \"import ultralytics; print\\('ultralytics', ultralytics.__version__\\)\")"
+    ]
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "cameras": [
+    {
+      "id": "CAM-01",
+      "name": "Camera #1 — Main Entrance & Gate",
+      "source": "cam1_entrance.mp4",
+      "sector": "SECTOR-NORTH",
+      "enabled": true,
+      "loop": true,
+      "map_x": 0.24,
+      "map_y": 0.32,
+      "zones": [
+        {
+          "id": "gate-perimeter-line",
+          "name": "Perimeter Entrance Tripwire",
+          "kind": "line",
+          "points": [[0.05, 0.75], [0.95, 0.75]],
+          "severity": 4,
+          "direction": "both",
+          "classes": ["person"]
+        }
+      ],
+      "ptz": {
+        "enabled": true,
+        "host": "192.168.10.11",
+        "port": 80,
+        "username": "ssb_operator",
+        "password_env": ""
+      },
+      "analytics": ["person", "pose", "intrusion", "reid"]
+    },
+    {
+      "id": "CAM-02",
+      "name": "Camera #2 — Inner Construction Yard",
+      "source": "cam2_yard.mp4",
+      "sector": "SECTOR-CENTRAL",
+      "enabled": true,
+      "loop": true,
+      "map_x": 0.52,
+      "map_y": 0.45,
+      "zones": [
+        {
+          "id": "yard-restricted-zone",
+          "name": "High-Risk Staging Buffer",
+          "kind": "polygon",
+          "points": [[0.1, 0.45], [0.9, 0.45], [0.9, 0.95], [0.1, 0.95]],
+          "severity": 3,
+          "direction": "both",
+          "classes": ["person", "vehicle"]
+        }
+      ],
+      "ptz": {
+        "enabled": true,
+        "host": "192.168.10.12",
+        "port": 80,
+        "username": "ssb_operator",
+        "password_env": ""
+      },
+      "analytics": ["person", "pose", "reid"]
+    },
+    {
+      "id": "CAM-03",
+      "name": "Camera #M — Secure Access Corridor",
+      "source": "cam3_corridor.mp4",
+      "sector": "SECTOR-EAST",
+      "enabled": true,
+      "loop": true,
+      "map_x": 0.78,
+      "map_y": 0.68,
+      "zones": [
+        {
+          "id": "corridor-access-line",
+          "name": "Corridor Security Boundary",
+          "kind": "line",
+          "points": [[0.2, 0.5], [0.8, 0.5]],
+          "severity": 5,
+          "direction": "both",
+          "classes": ["person"]
+        }
+      ],
+      "ptz": {
+        "enabled": true,
+        "host": "192.168.10.13",
+        "port": 80,
+        "username": "ssb_operator",
+        "password_env": ""
+      },
+      "analytics": ["person", "pose", "reid"]
+    }
+  ]
+}
